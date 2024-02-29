@@ -1,4 +1,5 @@
 #include<bits/stdc++.h>
+#include <fstream>
 using namespace std;
 double yl;
 #define MAX 10000000000000000
@@ -33,7 +34,7 @@ class point{
 			y = trunc(b);
 		}
 		bool operator ==(const point a) const{
-			return ((x==a.x) &&(y == a.y));
+			return (fabs(x-a.x)<0.0001 && fabs(y-a.y)<0.0001);
 		}
 		bool operator<(const point& other) const {
 			if (x < other.x)
@@ -157,6 +158,22 @@ multiset<breakpoint,Tcompare> T;
 set<pair<point,bool>,EQcompare> EQ;
 map<breakpoint, edge> vd;
 map<point,arc> m;
+void printtree(){
+	cout<<endl;
+	cout<<"The Elements of Tree are\n";
+	for(auto i  =T.begin();i!=T.end();i++){
+		pp((*i).f1);
+		pp((*i).f2);
+		cout<<parabola_solver({{(*i).f1,(*i).f2},(*i).plus})<<endl;
+	}
+}
+void printEQ(){
+	cout<<endl;
+	cout<<"The Elements of EQ are\n";
+	for(auto i = EQ.begin();i!=EQ.end();i++){
+		pp((*i).first);
+	}
+}
 point create_circle_event(point p1,point p2,point p3){
 	double xa,ya;
 	linear_solver(2*(p1.x-p2.x),2*(p1.y-p2.y),modd(p2)-modd(p1),2*(p3.x - p2.x),2*(p3.y - p2.y),modd(p2) - modd(p3),xa,ya);
@@ -166,11 +183,14 @@ point create_circle_event(point p1,point p2,point p3){
 	return C;
 }
 void add_circle_event(point p1,point p2,point p3,breakpoint a, bool next){
+	if(p1==p2 || p2==p3 || p1==p3){
+		return;
+	}
 	double xa,ya;
 	linear_solver(2*(p1.x-p2.x),2*(p1.y-p2.y),modd(p2)-modd(p1),2*(p3.x - p2.x),2*(p3.y - p2.y),modd(p2) - modd(p3),xa,ya);
 	double r = trunc(sqrt(modd({xa - p3.x, ya - p3.y})));
 	ya-=r;
-	if(ya <=yl){
+	if(ya <yl){
 	point e(xa,ya);
 	arc x(a,next);
 	m[e] = x;
@@ -315,16 +335,13 @@ void check_and_add(breakpoint a,breakpoint b){
 	}
 }
 void handle_circle_event(point p){
+	// printEQ();
+	//cout<<"***";
 	breakpoint a1(m[p].B.f1,m[p].B.f2,m[p].B.plus);
-	cout<<"\nThe circle event corresponds to the arc: ";
-	cout<<"Breakpoint( ";
-	pp(m[p].B.f1);
-	cout<<" ";
-	pp(m[p].B.f2);
-	cout<<" ";
-	cout<<parabola_solver({{m[p].B.f1,m[p].B.f2},m[p].B.plus});
-	cout<<" ) ";
-	cout<<m[p].next;
+	// pp(a1.f1);
+	// pp(a1.f2);
+	// cout<<parabola_solver({{a1.f1,a1.f2},a1.plus})<<endl;
+
 	breakpoint a2;
 	breakpoint a3;
 	breakpoint a1prev;
@@ -336,46 +353,90 @@ void handle_circle_event(point p){
 	bool front = false;
 	bool doubleend = false;
 	bool doublebegin = false;
+	auto it = T.begin();
 	if(a1 == *(T.begin())){
-		a2 = *(++T.lower_bound(a1));
-		a1next = *(++T.lower_bound(a1));
+		it = T.begin();
+		a2 = *(++it);
+		it--;
+		a1next = *(++it);
+		it--;
 		begin = true;
-	}
-	else if(  a1 == *(--T.end())){
-		front = true;
-		a2 = *(--T.lower_bound(a1));
-		a1prev = *(--T.lower_bound(a1));
-		end = true;
-	}
-	else{
-		a2 = *(++T.lower_bound(a1)); //(6,6) (5,3)
-		a3 = *(--T.lower_bound(a1)); //(2,2) (6,6)
-		a1next = *(++T.lower_bound(a1)); //.end()
-		a1prev = *(--T.lower_bound(a1)); // (2,2) (6,6) .begin()
-		if(parabola_solver({{a2.f1,a2.f2},a2.plus})!=parabola_solver({{a1.f1,a1.f2},a1.plus})){
-			front = true;
-			a2 = a3;
-		}
-	}
-	cout<<"**";
-	pp(a2.f1);
-	pp(a2.f2);
-	cout<<parabola_solver({{a2.f1,a2.f2},a2.plus});
-	if(!end){
-		if(a1next==*(--T.end())){
+		if(T.size()==2){
 			doubleend = true;
 		}
 	}
-	if(!begin){
-		if(a1prev == *(--T.begin())){
+	else if(  a1 == *(--T.end())){
+		front = true;
+		it = --T.end();
+		a2 = *(--it);
+		it++;
+		a1prev = *(--it);
+		it++;
+		end = true;
+		if(T.size()==2){
 			doublebegin = true;
 		}
 	}
+	else{
+		it = T.lower_bound(a1);
+		// cout<<"debug1";
+		// pp(it->f1);
+		// pp(it->f2);
+		//cout<<parabola_solver({{it->f1,it->f2},it->plus});
+		while((!(a1==*it))&&!(it==--T.begin())){
+			it--;
+		}
+		if(!(a1==*it)){return;}
+		//cout<<"debug:";
+		// pp(a1.f1);
+		// pp(a1.f2);
+		// cout<<parabola_solver({{a1.f1,a1.f2},a1.plus});
+		// pp(it->f1);
+		// pp(it->f2);
+		// cout<<parabola_solver({{it->f1,it->f2},it->plus});
+		a2 = *(++it);
+		it--;
+		a3 = *(--it); 
+		it++;
+		if(++it == (--T.end())){
+			doubleend = true;
+		}
+		it--;
+		if(--it == T.begin()){
+			doublebegin = true;
+		}
+		it++;
+		a1next = *(++it); //.end()
+		it--;
+		a1prev = *(--it); // (2,2) (6,6) .begin()
+		it++;
+		// cout<<"owjdc";
+		// pp(a2.f1);
+		// pp(a2.f2);
+		// cout<<parabola_solver({{a2.f1,a2.f2},a2.plus});
+		// cout<<"wejc";
+		if(fabs(parabola_solver({{a2.f1,a2.f2},a2.plus})-parabola_solver({{a1.f1,a1.f2},a1.plus}))>0.001){
+			front = true;
+			a2 = a3;
+		}	
+	}
+	// cout<<"eojof";
+	// pp(a1.f1);
+	// pp(a1.f2);
+	// cout<<parabola_solver({{a1.f1,a1.f2},a1.plus});
+	// cout<<"eojkffc";
+	// pp(a2.f1);
+	// pp(a2.f2);
+	// cout<<parabola_solver({{a2.f1,a2.f2},a2.plus});
 	if(!doublebegin){
-		a1dprev = *(--T.lower_bound(a1prev));
+		a1dprev = *(--(--it));
+		it++;
+		it++;
 	}
 	if(!doubleend){
-		a1dnext = *(++T.lower_bound(a1next));
+		a1dnext = *(++(++it));
+		it--;
+		it--;
 	}
 	vector<point> o(4);
 	o[0] = a1.f1;
@@ -393,7 +454,7 @@ void handle_circle_event(point p){
 		add_edge(a1,p);
 		T.erase(a2);
 		add_edge(a2,p);
-		if(k==parabola_solver(make_pair(make_pair(o[0],o[3]),true))){
+		if(fabs(k-parabola_solver(make_pair(make_pair(o[0],o[3]),true)))<0.001){
 			breakpoint a4(o[0],o[3],true);
 			a3 = a4;
 			T.insert(a4);
@@ -413,7 +474,7 @@ void handle_circle_event(point p){
 		add_edge(a1,p);
 		T.erase(a2);
 		add_edge(a2,p);
-		if(k==parabola_solver(make_pair(make_pair(o[0],o[2]),true))){
+		if(fabs(k-parabola_solver(make_pair(make_pair(o[0],o[2]),true)))<0.001){
 			breakpoint a4(o[0],o[2],true);
 			a3 = a4;
 			T.insert(a4);
@@ -432,7 +493,7 @@ void handle_circle_event(point p){
 		add_edge(a1,p);
 		T.erase(a2);
 		add_edge(a2,p);
-		if(k==parabola_solver(make_pair(make_pair(o[1],o[3]),true))){
+		if(fabs(k-parabola_solver(make_pair(make_pair(o[1],o[3]),true)))<0.001){
 			breakpoint a4(o[1],o[3],true);
 			a3=a4;
 			T.insert(a4);
@@ -451,7 +512,8 @@ void handle_circle_event(point p){
 		add_edge(a1,p);
 		T.erase(a2);
 		add_edge(a2,p);
-		if(k==parabola_solver(make_pair(make_pair(o[1],o[2]),true))){
+		//cout<<"jernf"<<endl;
+		if(fabs(k-parabola_solver(make_pair(make_pair(o[1],o[2]),true)))<0.001){
 			breakpoint a4(o[1],o[2],true);
 			a3=a4;
 			T.insert(a4);
@@ -464,30 +526,43 @@ void handle_circle_event(point p){
 			add_edge(a4,p);
 		}
 	}
+	// printEQ();
+	// cout<<"oenoe";
+	// printtree();
+	// cout<<"wpokdnc";
+	// pp(f);
 	if(front){
 		if(!end){
-			point u(create_circle_event(f,a1next.f1,a1next.f2));
-			m.erase(u);
-			EQ.erase({u,false});
+			if(!(f==a1next.f1) && !(f==a1next.f2)){
+				point u(create_circle_event(f,a1next.f1,a1next.f2));
+				m.erase(u);
+				EQ.erase({u,false});
+			}
 		}
 		if(!doublebegin){
-			point u(create_circle_event(f,a1dprev.f1,a1dprev.f2));
-			m.erase(u);
-			EQ.erase({u,false});
+			if(!(f==a1dprev.f1) && !(f==a1dprev.f2)){
+				point u(create_circle_event(f,a1dprev.f1,a1dprev.f2));
+				m.erase(u);
+				EQ.erase({u,false});
+			}
 		}
 		
 	}
 	else{
 		if(!doubleend){
-			point u(create_circle_event(f,a1dnext.f1,a1dnext.f2));
-			m.erase(u);
-			EQ.erase({u,false});
+			if(!(f==a1dnext.f1) && !(f==a1dnext.f2)){
+				point u(create_circle_event(f,a1dnext.f1,a1dnext.f2));
+				m.erase(u);
+				EQ.erase({u,false});
+			}
 		}
 		
 		if(!begin){
-			point u(create_circle_event(f,a1prev.f1,a1prev.f2));
-			m.erase(u);
-			EQ.erase({u,false});
+			if(!(f==a1prev.f1) && !(f==a1prev.f2)){
+				point u(create_circle_event(f,a1prev.f1,a1prev.f2));
+				m.erase(u);
+				EQ.erase({u,false});
+			}
 		}
 	}
 	if(!end){
@@ -513,22 +588,7 @@ void handle_circle_event(point p){
 	}
 	return;
 }
-void printtree(){
-	cout<<"\n";
-	cout<<"The Elements of Tree are\n";
-	for(auto i  =T.begin();i!=T.end();i++){
-		pp((*i).f1);
-		pp((*i).f2);
-		cout<<parabola_solver({{(*i).f1,(*i).f2},(*i).plus})<<"\n";
-	}
-}
-void printEQ(){
-	cout<<"\n";
-	cout<<"The Elements of EQ are\n";
-	for(auto i = EQ.begin();i!=EQ.end();i++){
-		pp((*i).first);
-	}
-}
+
 int main(){
 	int n;
 	cin>>n;
@@ -555,7 +615,17 @@ int main(){
 	breakpoint b2(p1,p2,false);
 	yl = p2.y;
 	T.insert(b1);
+	edge a;
+	a.isstart = true;
+	a.start.x = p2.x;
+	a.start.y = parabola_y(p1,p2.x);
+	edge b;
+	b.isstart = true;
+	b.start.x = p2.x;
+	b.start.y = parabola_y(p1,p2.x);
 	T.insert(b2);
+	vd[b1] = a;
+	vd[b2] = b;
 	cout<<"-------\n";
 	cout<<"After Handling first two points:";
 	printEQ();
@@ -589,9 +659,16 @@ int main(){
 		printtree();
 	}
 	vector<pair<point,point>> v2;
+	std::ofstream outputFile;
+	outputFile.open("output.txt");
+	if (!outputFile.is_open()) {
+        std::cerr << "Error: Unable to open the file for writing!\n";
+        return 1; // Return an error code
+    }
 	for(auto it = vd.begin();it !=vd.end();it++){
-	 	cout<<(*it).second.start.x<<" "<<(*it).second.start.y<<"\n";
-		cout<<(*it).second.end.x<<" "<<(*it).second.end.y<<"\n";
-	 }
+	 	outputFile<<(*it).second.start.x<<" "<<(*it).second.start.y<<" ";
+		outputFile<<(*it).second.end.x<<" "<<(*it).second.end.y<<endl;
+	}
+	outputFile.close();
 	return 0;
 }
