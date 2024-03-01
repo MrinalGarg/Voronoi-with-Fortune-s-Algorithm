@@ -74,9 +74,13 @@ class breakpoint{
 			}
 			if (f1 == other.f1 && f2 < other.f2)
             return true;
+			if(f1 == other.f1 && f2 == other.f2){
+				return plus < other.plus;
+			}
         return false;
 		}
 };
+
 double modd(point p){
 	return (p.x*p.x + p.y*p.y);
 }
@@ -90,6 +94,14 @@ double parabola_solver(pair<pair<point,point>,bool> p){
 	double b = -2*(p1.x*p2.y - p2.x*p1.y - yl*(p1.x - p2.x));
 	double c = modd(p1)*(p2.y - yl) - modd(p2)*(p1.y - yl) -yl*yl*(p2.y - p1.y);
 	return quadratic_solver(a,b,c,p.second);
+}
+double breakpoint_solver(breakpoint a){
+	return parabola_solver({{a.f1,a.f2},a.plus});
+}
+void printbp(breakpoint a){
+	pp(a.f1);
+	pp(a.f2);
+	cout<<breakpoint_solver(a)<<"\n";
 }
 class Tcompare {
 	public:
@@ -196,16 +208,19 @@ void add_circle_event(point p1,point p2,point p3,breakpoint a, bool next){
 	m[e] = x;
 	EQ.insert(make_pair(e,false));}
 }
-void add_edge(breakpoint a, point p){
+void add_edge(breakpoint a){
+	cout<<"\nADDING EDGE\n";
 	if(vd.find(a) == vd.end()){
 		edge e;
 		e.isstart = true;
-		e.start = p;
+		e.start = point(breakpoint_solver(a),parabola_y(a.f1,breakpoint_solver(a)));
+		pp(e.start);
 		vd[a] = e;
 	}
 	else{
 		vd[a].isend = true;
-		vd[a].end = p;
+		vd[a].end = point(breakpoint_solver(a),parabola_y(a.f1,breakpoint_solver(a)));
+		pp(vd[a].end);
 	}
 }
 void handle_site_event(point p){
@@ -230,9 +245,11 @@ void handle_site_event(point p){
 		if(min==2){
 			point d(p.x,parabola_y(o2,p.x));
 			T.insert(breakpoint(p,o2,true));
-			add_edge(breakpoint(p,o2,true),d);
+			vd[(breakpoint(p,o2,true))].isstart = true;
+			vd[(breakpoint(p,o2,true))].start = d;
 			T.insert(breakpoint(p,o2,false));
-			add_edge(breakpoint(p,o2,false),d);
+			vd[(breakpoint(p,o2,false))].isstart = true;
+			vd[(breakpoint(p,o2,false))].start = d;
 			// pp(o3);
 			// pp(o2);
 			// pp(p);
@@ -241,9 +258,11 @@ void handle_site_event(point p){
 		else{
 			point d(p.x,parabola_y(o3,p.x));
 			T.insert(breakpoint(p,o3,true));
-			add_edge(breakpoint(p,o3,true),d);
+			vd[(breakpoint(p,o3,true))].isstart = true;
+			vd[(breakpoint(p,o3,true))].start = d;
 			T.insert(breakpoint(p,o3,false));
-			add_edge(breakpoint(p,o3,false),d);
+			vd[(breakpoint(p,o3,false))].isstart = true;
+			vd[(breakpoint(p,o3,false))].start = d;
 			// pp(o3);
 			// pp(o2);
 			// pp(p);
@@ -269,9 +288,11 @@ void handle_site_event(point p){
 		if(min==2){
 			point d(p.x,parabola_y(o2,p.x));
 			T.insert(breakpoint(p,o2,true));
-			add_edge(breakpoint(p,o2,true),d);
+			vd[(breakpoint(p,o2,true))].isstart = true;
+			vd[(breakpoint(p,o2,true))].start = d;
 			T.insert(breakpoint(p,o2,false));
-			add_edge(breakpoint(p,o2,false),d);
+			vd[(breakpoint(p,o2,false))].isstart = true;
+			vd[(breakpoint(p,o2,false))].start = d;
 			// pp(o3);
 			// pp(o2);
 			// pp(p);
@@ -280,9 +301,11 @@ void handle_site_event(point p){
 		else{
 			point d(p.x,parabola_y(o3,p.x));
 			T.insert(breakpoint(p,o3,true));
-			add_edge(breakpoint(p,o3,true),d);
+			vd[(breakpoint(p,o3,true))].isstart = true;
+			vd[(breakpoint(p,o3,true))].start = d;
 			T.insert(breakpoint(p,o3,false));
-			add_edge(breakpoint(p,o3,false),d);
+			vd[(breakpoint(p,o3,false))].isstart = true;
+			vd[(breakpoint(p,o3,false))].start = d;
 			// pp(o3);
 			// pp(o2);
 			// pp(p);
@@ -306,9 +329,11 @@ void handle_site_event(point p){
 		}
 		point d(p.x,parabola_y(o[min],p.x));
 		T.insert(breakpoint(p,o[min],true));
-		add_edge(breakpoint(p,o[min],true),d);
+		vd[(breakpoint(p,o[min],true))].isstart = true;
+		vd[(breakpoint(p,o[min],true))].start = d;
 		T.insert(breakpoint(p,o[min],false));
-		add_edge(breakpoint(p,o[min],false),d);
+		vd[(breakpoint(p,o[min],false))].isstart = true;
+		vd[(breakpoint(p,o[min],false))].start = d;
 		add_circle_event(o[0],o[1],p,a1,false);
 		add_circle_event(o[2],o[3],p,a2,true);
 		if(o[min]==o[0]){
@@ -336,7 +361,7 @@ void check_and_add(breakpoint a,breakpoint b){
 }
 void handle_circle_event(point p){
 	// printEQ();
-	//cout<<"***";
+	// cout<<"***";
 	breakpoint a1(m[p].B.f1,m[p].B.f2,m[p].B.plus);
 	// pp(a1.f1);
 	// pp(a1.f2);
@@ -379,14 +404,23 @@ void handle_circle_event(point p){
 	}
 	else{
 		it = T.lower_bound(a1);
-		// cout<<"debug1";
+		//  cout<<"debug1";
 		// pp(it->f1);
 		// pp(it->f2);
-		//cout<<parabola_solver({{it->f1,it->f2},it->plus});
-		while((!(a1==*it))&&!(it==--T.begin())){
-			it--;
+		// cout<<parabola_solver({{it->f1,it->f2},it->plus});
+		auto b = it;
+		if(!(a1==*it)){
+			while((!(a1==*b))&&!(b==--T.begin())){
+				b--;
+			}
 		}
-		if(!(a1==*it)){return;}
+		if(!(a1==*b)){
+			b = it;
+			if(!(a1==*(++b))){
+				return;
+			}
+		}
+		it = b;
 		//cout<<"debug:";
 		// pp(a1.f1);
 		// pp(a1.f2);
@@ -451,79 +485,79 @@ void handle_circle_event(point p){
 	if(o[1] == o[2]){
 		f = o[1];
 		T.erase(a1);
-		add_edge(a1,p);
+		add_edge(a1);
 		T.erase(a2);
-		add_edge(a2,p);
+		add_edge(a2);
 		if(fabs(k-parabola_solver(make_pair(make_pair(o[0],o[3]),true)))<0.001){
 			breakpoint a4(o[0],o[3],true);
 			a3 = a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 		else{
 			breakpoint a4(o[0],o[3],false);
 			a3 = a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 		
 	}
 	else if(o[1]== o[3]){
 		f = o[1];
 		T.erase(a1);
-		add_edge(a1,p);
+		add_edge(a1);
 		T.erase(a2);
-		add_edge(a2,p);
+		add_edge(a2);
 		if(fabs(k-parabola_solver(make_pair(make_pair(o[0],o[2]),true)))<0.001){
 			breakpoint a4(o[0],o[2],true);
 			a3 = a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 		else{
 			breakpoint a4(o[0],o[2],false);
 			a3 = a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 	}
 	else if(o[0]==o[2]){
 		f = o[0];
 		T.erase(a1);
-		add_edge(a1,p);
+		add_edge(a1);
 		T.erase(a2);
-		add_edge(a2,p);
+		add_edge(a2);
 		if(fabs(k-parabola_solver(make_pair(make_pair(o[1],o[3]),true)))<0.001){
 			breakpoint a4(o[1],o[3],true);
 			a3=a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 		else{
 			breakpoint a4(o[1],o[3],false);
 			a3=a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 	}
 	else if(o[0]==o[3]){
 		f = o[3];
 		T.erase(a1);
-		add_edge(a1,p);
+		add_edge(a1);
 		T.erase(a2);
-		add_edge(a2,p);
+		add_edge(a2);
 		//cout<<"jernf"<<endl;
 		if(fabs(k-parabola_solver(make_pair(make_pair(o[1],o[2]),true)))<0.001){
 			breakpoint a4(o[1],o[2],true);
 			a3=a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 		else{
 			breakpoint a4(o[1],o[2],false);
 			a3=a4;
 			T.insert(a4);
-			add_edge(a4,p);
+			add_edge(a4);
 		}
 	}
 	// printEQ();
@@ -661,6 +695,11 @@ int main(){
 	vector<pair<point,point>> v2;
 	std::ofstream outputFile;
 	outputFile.open("output.txt");
+	yl = yl-1;
+	for(auto i = T.begin();i!=T.end();i++){
+		vd[*i].end.x = breakpoint_solver(*i);
+		vd[*i].end.y = parabola_y((*i).f1,breakpoint_solver(*i));
+	}
 	if (!outputFile.is_open()) {
         std::cerr << "Error: Unable to open the file for writing!\n";
         return 1; // Return an error code
