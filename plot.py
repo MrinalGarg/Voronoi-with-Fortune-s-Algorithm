@@ -51,3 +51,5 @@ if __name__ == "__main__":
     input_file = sys.argv[1]
     output_file = sys.argv[2]
     plot(input_file, output_file)
+
+#give code such that it generates a data set of 

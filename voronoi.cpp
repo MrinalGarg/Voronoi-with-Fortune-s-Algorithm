@@ -4,15 +4,18 @@ using namespace std;
 double yl;
 #define MAX 10000000000000000
 #define MIN -1000000000000000
+
 double trunc(double a){
 	//return double(int(a*100000.0)/double(100000.0));
 	return a;
-}
+} 
+// given a1x + b1y = c1 and a2x + b2y = c2, this function returns the value of x and y
 void linear_solver(double a1,double b1,double c1,double a2, double b2, double c2, double &x, double &y){
 	x = trunc((c2*b1 - c1*b2)/(b2*a1 - b1*a2));
 	y = trunc((c1*a2 - c2*a1)/(b2*a1-b1*a2));
 	return;
 }
+// given a quadratic equation ax^2 + bx + c = 0, this function returns the value of x
 double quadratic_solver(double a,double b,double c,bool plus){
 	if(plus){
 		return trunc((-b + sqrt(b*b-4*a*c))/(2*a));
@@ -21,6 +24,7 @@ double quadratic_solver(double a,double b,double c,bool plus){
 		return trunc((-b-sqrt(b*b - 4*a*c))/(2*a));
 	}
 }
+// class point represents a point in the plane
 class point{
 	public:
 		double x;
@@ -47,9 +51,11 @@ class point{
 			cout<<"("<<x<<","<<y<<") ";
 		}
 };
+// prints the point
 void pp(const point p){
 	cout<<"("<<p.x<<","<<p.y<<") ";
 }
+// class breakpoint represents a breakpoint in the beachline
 class breakpoint{
 	public:
 		point f1;
@@ -80,13 +86,15 @@ class breakpoint{
         return false;
 		}
 };
-
+// returns the square of the modulus of the point
 double modd(point p){
 	return (p.x*p.x + p.y*p.y);
 }
+// returns the y coordinate of the parabola given the x coordinate
 double parabola_y(point p,double x){
 	return trunc((x*x - 2*p.x*x + modd(p) - yl*yl)/(2*(p.y - yl)));
 }
+// returns the x coordinate of the intersection of the parabolas given the breakpoint
 double parabola_solver(pair<pair<point,point>,bool> p){
 	point p1 = p.first.first;
 	point p2 = p.first.second;
@@ -95,14 +103,17 @@ double parabola_solver(pair<pair<point,point>,bool> p){
 	double c = modd(p1)*(p2.y - yl) - modd(p2)*(p1.y - yl) -yl*yl*(p2.y - p1.y);
 	return quadratic_solver(a,b,c,p.second);
 }
+// returns the x coordinate of the intersection of the parabolas given the breakpoint
 double breakpoint_solver(breakpoint a){
 	return parabola_solver({{a.f1,a.f2},a.plus});
 }
+// prints the breakpoint
 void printbp(breakpoint a){
 	pp(a.f1);
 	pp(a.f2);
 	cout<<breakpoint_solver(a)<<"\n";
 }
+// class Tcompare is a comparator for the multiset T
 class Tcompare {
 	public:
 	typedef breakpoint value_type;
@@ -129,17 +140,19 @@ class Tcompare {
 		return x1 < x2;
     }
 };
+// class EQcompare is a comparator for the set EQ
 class EQcompare {
 	public:
 	typedef std::pair<point, bool> value_type;
     bool operator()(pair<point,bool> p1, pair<point,bool> p2) const
     {
-        if (p1.first.y > p2.first.y) {
+        if (p1.first.y >= p2.first.y) {
             return true;
         }
         return false;
     }
 };
+// class arc represents an arc in the beachline
 class arc{
 	public:
 		breakpoint B;
@@ -153,6 +166,7 @@ class arc{
 			next = false;
 		}
 };
+// class edge represents an edge in the voronoi diagram
 class edge{
 	public:
 		bool isstart;
@@ -166,10 +180,10 @@ class edge{
 			point end(MAX,MAX);
 		} 
 };
-multiset<breakpoint,Tcompare> T;
-set<pair<point,bool>,EQcompare> EQ;
-map<breakpoint, edge> vd;
-map<point,arc> m;
+multiset<breakpoint,Tcompare> T;//beachline
+set<pair<point,bool>,EQcompare> EQ;//event queue
+map<breakpoint, edge> vd;//voronoi diagram
+map<point,arc> m;//circle event
 void printtree(){
 	cout<<endl;
 	cout<<"The Elements of Tree are\n";
@@ -230,11 +244,6 @@ void handle_site_event(point p){
 		breakpoint a2 = *(--b);
 		point o2 = a2.f1;
 		point o3 = a2.f2;
-		// cout<<"\n((((((((((((((";
-		// pp(o2);
-		// pp(o3);
-		// cout<<"))))))))))))))\n";
-		// cout<<"\n(((((("<<parabola_y(o2,p.x)<<" "<<parabola_y(o3,p.x)<<")))))))))))\n";
 		int min = 0;
 		if(parabola_y(o2,p.x) < parabola_y(o3,p.x)){
 			min = 2;
@@ -250,9 +259,6 @@ void handle_site_event(point p){
 			T.insert(breakpoint(p,o2,false));
 			vd[(breakpoint(p,o2,false))].isstart = true;
 			vd[(breakpoint(p,o2,false))].start = d;
-			// pp(o3);
-			// pp(o2);
-			// pp(p);
 			add_circle_event(o2,o3,p,a2,true);
 		}
 		else{
@@ -263,22 +269,14 @@ void handle_site_event(point p){
 			T.insert(breakpoint(p,o3,false));
 			vd[(breakpoint(p,o3,false))].isstart = true;
 			vd[(breakpoint(p,o3,false))].start = d;
-			// pp(o3);
-			// pp(o2);
-			// pp(p);
 			add_circle_event(o2,o3,p,a2,true);
 		}
 	}
 	else if(b == T.begin()){
 		breakpoint a2 = *b;
-		// cout<<"\n((((((((((((((";
-		// pp(a2.f1);
-		// pp(a2.f2);
-		// cout<<"))))))))))))))\n";
 		point o2 = a2.f1;
 		point o3 = a2.f2;
 		int min = 0;
-		// cout<<"\n(((((("<<parabola_y(o2,p.x)<<" "<<parabola_y(o3,p.x)<<")))))))))))\n";
 		if(parabola_y(o2,p.x) < parabola_y(o3,p.x)){
 			min = 2;
 		}
@@ -293,9 +291,6 @@ void handle_site_event(point p){
 			T.insert(breakpoint(p,o2,false));
 			vd[(breakpoint(p,o2,false))].isstart = true;
 			vd[(breakpoint(p,o2,false))].start = d;
-			// pp(o3);
-			// pp(o2);
-			// pp(p);
 			add_circle_event(o2,o3,p,a2,false);
 		}
 		else{
@@ -306,9 +301,6 @@ void handle_site_event(point p){
 			T.insert(breakpoint(p,o3,false));
 			vd[(breakpoint(p,o3,false))].isstart = true;
 			vd[(breakpoint(p,o3,false))].start = d;
-			// pp(o3);
-			// pp(o2);
-			// pp(p);
 			add_circle_event(o2,o3,p,a2,false);
 		}
 	}
@@ -328,6 +320,8 @@ void handle_site_event(point p){
 			}  
 		}
 		point d(p.x,parabola_y(o[min],p.x));
+		// cout<<"d:";
+		// pp(d);
 		T.insert(breakpoint(p,o[min],true));
 		vd[(breakpoint(p,o[min],true))].isstart = true;
 		vd[(breakpoint(p,o[min],true))].start = d;
@@ -336,12 +330,13 @@ void handle_site_event(point p){
 		vd[(breakpoint(p,o[min],false))].start = d;
 		add_circle_event(o[0],o[1],p,a1,false);
 		add_circle_event(o[2],o[3],p,a2,true);
-		if(o[min]==o[0]){
-			EQ.erase({create_circle_event(o[1],o[2],o[3]),false});
-		}
-		else{
-			EQ.erase({create_circle_event(o[0],o[2],o[3]),false});
-		}
+		printEQ();
+		// if(o[min]==o[0]){
+		// 	EQ.erase({create_circle_event(o[1],o[2],o[3]),false});
+		// }
+		// else{
+		// 	EQ.erase({create_circle_event(o[0],o[2],o[3]),false});
+		// }
 		//updating voronoi diagram left
 	}
 	return;
@@ -360,13 +355,7 @@ void check_and_add(breakpoint a,breakpoint b){
 	}
 }
 void handle_circle_event(point p){
-	// printEQ();
-	// cout<<"***";
 	breakpoint a1(m[p].B.f1,m[p].B.f2,m[p].B.plus);
-	// pp(a1.f1);
-	// pp(a1.f2);
-	// cout<<parabola_solver({{a1.f1,a1.f2},a1.plus})<<endl;
-
 	breakpoint a2;
 	breakpoint a3;
 	breakpoint a1prev;
@@ -634,7 +623,6 @@ int main(){
 		v[i] = p;
 	}
 	for(int i=0;i<n;i++){
-		//cout<<"ijn"<<endl;
 		EQ.insert({v[i],true});
 	}
 	if(EQ.size()<=1){
