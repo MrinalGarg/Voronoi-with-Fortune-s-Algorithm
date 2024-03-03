@@ -5,8 +5,8 @@ def generate_random_points(num_points):
     points = []
     points.append(str(num_points))  # Add the number of points as the first line
     for _ in range(num_points):
-        x = random.uniform(0, 10)  # Adjust range as needed
-        y = random.uniform(0, 10)  # Adjust range as needed
+        x = random.uniform(0, 1000)  # Adjust range as needed
+        y = random.uniform(0, 1000)  # Adjust range as needed
         points.append(f"{x} {y}")
     return points
 
