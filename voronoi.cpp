@@ -3,26 +3,37 @@
 using namespace std;
 double yl;
 #define MAX 10000000000000000
-#define MIN -1000000000000000
+#define MIN -10000000000000000
 
+//dummy function to truncate points in the initial phase of testing
 double trunc(double a){
 	//return double(int(a*100000.0)/double(100000.0));
 	return a;
 } 
 // given a1x + b1y = c1 and a2x + b2y = c2, this function returns the value of x and y
-void linear_solver(double a1,double b1,double c1,double a2, double b2, double c2, double &x, double &y){
+void linear_solver(double a1,double b1,double c1,double a2, double b2, double c2, double &x, double &y, bool &valid){
+	if(b2*a1!=b1*a2){
+		valid = true;
 	x = trunc((c2*b1 - c1*b2)/(b2*a1 - b1*a2));
 	y = trunc((c1*a2 - c2*a1)/(b2*a1-b1*a2));
+	}
+	else{
+		valid = false;
+	}
 	return;
 }
 // given a quadratic equation ax^2 + bx + c = 0, this function returns the value of x
 double quadratic_solver(double a,double b,double c,bool plus){
+	if(a==0){
+		return (-c/b);
+	}
 	if(plus){
-		return trunc((-b + sqrt(b*b-4*a*c))/(2*a));
+		return trunc((-b + sqrt(fabs(b*b-4*a*c)))/(2*a));
 	}
 	else{
-		return trunc((-b-sqrt(b*b - 4*a*c))/(2*a));
+		return trunc((-b-sqrt(fabs(b*b - 4*a*c)))/(2*a));
 	}
+
 }
 // class point represents a point in the plane
 class point{
@@ -198,28 +209,35 @@ void printEQ(){
 	cout<<"The Elements of EQ are\n";
 	for(auto i = EQ.begin();i!=EQ.end();i++){
 		pp((*i).first);
+		//cout<<(*i).second<<" ";
 	}
-}
-point create_circle_event(point p1,point p2,point p3){
-	double xa,ya;
-	linear_solver(2*(p1.x-p2.x),2*(p1.y-p2.y),modd(p2)-modd(p1),2*(p3.x - p2.x),2*(p3.y - p2.y),modd(p2) - modd(p3),xa,ya);
-	double r = modd({xa - p3.x, ya - p3.y});
-	ya-=r;
-	point C(xa,ya);
-	return C;
 }
 void add_circle_event(point p1,point p2,point p3,breakpoint a, bool next){
 	if(p1==p2 || p2==p3 || p1==p3){
+		// cout<<"Error in add_circle_event\n";
 		return;
 	}
 	double xa,ya;
-	linear_solver(2*(p1.x-p2.x),2*(p1.y-p2.y),modd(p2)-modd(p1),2*(p3.x - p2.x),2*(p3.y - p2.y),modd(p2) - modd(p3),xa,ya);
-	double r = trunc(sqrt(modd({xa - p3.x, ya - p3.y})));
+	pp(p1);
+	pp(p2);
+	pp(p3);
+	bool valid;
+	linear_solver(2*(p1.x-p2.x),2*(p1.y-p2.y),modd(p2)-modd(p1),2*(p3.x - p2.x),2*(p3.y - p2.y),modd(p2) - modd(p3),xa,ya,valid);
+	if(!valid){
+		return;
+	}
+	double r = trunc(sqrt(fabs(modd({xa - p3.x, ya - p3.y}))));
+	// cout<<"ya: "<<ya;
+	// cout<<"radius: "<<r<<endl;
 	ya-=r;
+	// cout<<"Circle Event being added3: ";
+	cout<<ya<<" "<<yl<<endl;
 	if(ya <yl){
+	// cout<<"Circle Event being added4\n";
 	point e(xa,ya);
 	arc x(a,next);
 	m[e] = x;
+	// cout<<"Circle Event added: ";
 	EQ.insert(make_pair(e,false));}
 }
 void add_edge(breakpoint a){
@@ -305,9 +323,12 @@ void handle_site_event(point p){
 		}
 	}
 	else{
+		//cout<<"\nWhat are the two breakpoints while handling site event:\n";
 		breakpoint a1 = *b;
 		b--;
 		breakpoint a2 = *b;
+		printbp(a1);
+		printbp(a2);
 		vector<point> o(4);
 		o[0] = a1.f1;
 		o[1] = a1.f2;
@@ -330,14 +351,6 @@ void handle_site_event(point p){
 		vd[(breakpoint(p,o[min],false))].start = d;
 		add_circle_event(o[0],o[1],p,a1,false);
 		add_circle_event(o[2],o[3],p,a2,true);
-		printEQ();
-		// if(o[min]==o[0]){
-		// 	EQ.erase({create_circle_event(o[1],o[2],o[3]),false});
-		// }
-		// else{
-		// 	EQ.erase({create_circle_event(o[0],o[2],o[3]),false});
-		// }
-		//updating voronoi diagram left
 	}
 	return;
 }
@@ -348,116 +361,75 @@ void check_and_add(breakpoint a,breakpoint b){
 	o[2] = b.f1;
 	o[3] = b.f2;
 	if(o[0]==o[2] || o[0]==o[3]){
+		// cout<<"\ncircle event being added1\n";
 		add_circle_event(o[1],o[2],o[3],a,true);
 	}
 	else if(o[1] == o[2] || o[1]==o[3]){
+		// cout<<"\ncircle event being added2\n";
 		add_circle_event(o[0],o[2],o[3],a,true);
 	}
 }
 void handle_circle_event(point p){
-	breakpoint a1(m[p].B.f1,m[p].B.f2,m[p].B.plus);
-	breakpoint a2;
-	breakpoint a3;
-	breakpoint a1prev;
-	breakpoint a1next;
-	breakpoint a1dprev;
-	breakpoint a1dnext;
+	breakpoint a1; // one of the breakpoints that are disappearing(earlier one)
+	breakpoint a2; // the other breakpoint that is disappearing
+	breakpoint a3; // temporary dummy break point
+	breakpoint prev; // breakpoint prev to a1
+	breakpoint next; //... next to a1
 	bool end = false;
 	bool begin = false;
-	bool front = false;
-	bool doubleend = false;
-	bool doublebegin = false;
-	auto it = T.begin();
-	if(a1 == *(T.begin())){
-		it = T.begin();
+	auto it = T.lower_bound(breakpoint(p,p,true));
+	if(it==T.end()){
+		it--;
+		it--;
+		a1 = *it;
 		a2 = *(++it);
 		it--;
-		a1next = *(++it);
-		it--;
-		begin = true;
-		if(T.size()==2){
-			doubleend = true;
-		}
 	}
-	else if(  a1 == *(--T.end())){
-		front = true;
-		it = --T.end();
-		a2 = *(--it);
-		it++;
-		a1prev = *(--it);
-		it++;
-		end = true;
-		if(T.size()==2){
-			doublebegin = true;
+	else if(fabs(p.x - breakpoint_solver(*it))<0.001){
+		if(fabs(p.x - breakpoint_solver(*(--it)))<0.001){
+			a1 = *it;
+			it++;
+			a2 = *it;
+			it--;
+		}
+		else{
+			it++;
+			a1 = *it;
+			it++;
+			a2 = *it;
+			it--;
 		}
 	}
 	else{
-		it = T.lower_bound(a1);
-		//  cout<<"debug1";
-		// pp(it->f1);
-		// pp(it->f2);
-		// cout<<parabola_solver({{it->f1,it->f2},it->plus});
-		auto b = it;
-		if(!(a1==*it)){
-			while((!(a1==*b))&&!(b==--T.begin())){
-				b--;
-			}
-		}
-		if(!(a1==*b)){
-			b = it;
-			if(!(a1==*(++b))){
-				return;
-			}
-		}
-		it = b;
-		//cout<<"debug:";
-		// pp(a1.f1);
-		// pp(a1.f2);
-		// cout<<parabola_solver({{a1.f1,a1.f2},a1.plus});
-		// pp(it->f1);
-		// pp(it->f2);
-		// cout<<parabola_solver({{it->f1,it->f2},it->plus});
+		it--;
+		it--;
+		a1 = *it;
 		a2 = *(++it);
 		it--;
-		a3 = *(--it); 
-		it++;
-		if(++it == (--T.end())){
-			doubleend = true;
-		}
-		it--;
-		if(--it == T.begin()){
-			doublebegin = true;
-		}
-		it++;
-		a1next = *(++it); //.end()
-		it--;
-		a1prev = *(--it); // (2,2) (6,6) .begin()
-		it++;
-		// cout<<"owjdc";
-		// pp(a2.f1);
-		// pp(a2.f2);
-		// cout<<parabola_solver({{a2.f1,a2.f2},a2.plus});
-		// cout<<"wejc";
-		if(fabs(parabola_solver({{a2.f1,a2.f2},a2.plus})-parabola_solver({{a1.f1,a1.f2},a1.plus}))>0.001){
-			front = true;
-			a2 = a3;
-		}	
 	}
-	// cout<<"eojof";
-	// pp(a1.f1);
-	// pp(a1.f2);
-	// cout<<parabola_solver({{a1.f1,a1.f2},a1.plus});
-	// cout<<"eojkffc";
-	// pp(a2.f1);
-	// pp(a2.f2);
-	// cout<<parabola_solver({{a2.f1,a2.f2},a2.plus});
-	if(!doublebegin){
-		a1dprev = *(--(--it));
-		it++;
+	if(!((fabs(p.x - breakpoint_solver(a1))<0.0001)&&(fabs(p.x - breakpoint_solver(a2))<0.0001))){
+		return;
+	}
+	if(T.size()==2){
+		end = true;
+		begin = true;
+	}
+	else{
+		if(it==T.begin()){
+			begin = true;
+		}
+		if(it == --T.end()){
+			end = true;
+		}
+	}
+	if(!begin){
+		prev = *(--it);
 		it++;
 	}
-	if(!doubleend){
-		a1dnext = *(++(++it));
+	if(!end){
+		it++;
+		it++;
+		next = *it;
 		it--;
 		it--;
 	}
@@ -466,11 +438,9 @@ void handle_circle_event(point p){
 	o[1] = a1.f2;
 	o[2] = a2.f1;
 	o[3] = a2.f2;
-	double k = parabola_solver({{a1.f1,a1.f2},a1.plus});
-	double k1 = parabola_y(o[0],k);
-	point z(k,k1);
-	point f;
-	
+	double k = parabola_solver({{a1.f1,a1.f2},a1.plus}); // x coordinate of point of convergence
+	point f; // focus of the arc disappearing
+	cout<<"Landmark1";
 	if(o[1] == o[2]){
 		f = o[1];
 		T.erase(a1);
@@ -489,7 +459,6 @@ void handle_circle_event(point p){
 			T.insert(a4);
 			add_edge(a4);
 		}
-		
 	}
 	else if(o[1]== o[3]){
 		f = o[1];
@@ -535,7 +504,6 @@ void handle_circle_event(point p){
 		add_edge(a1);
 		T.erase(a2);
 		add_edge(a2);
-		//cout<<"jernf"<<endl;
 		if(fabs(k-parabola_solver(make_pair(make_pair(o[1],o[2]),true)))<0.001){
 			breakpoint a4(o[1],o[2],true);
 			a3=a4;
@@ -549,65 +517,19 @@ void handle_circle_event(point p){
 			add_edge(a4);
 		}
 	}
-	// printEQ();
-	// cout<<"oenoe";
-	// printtree();
-	// cout<<"wpokdnc";
-	// pp(f);
-	if(front){
-		if(!end){
-			if(!(f==a1next.f1) && !(f==a1next.f2)){
-				point u(create_circle_event(f,a1next.f1,a1next.f2));
-				m.erase(u);
-				EQ.erase({u,false});
-			}
-		}
-		if(!doublebegin){
-			if(!(f==a1dprev.f1) && !(f==a1dprev.f2)){
-				point u(create_circle_event(f,a1dprev.f1,a1dprev.f2));
-				m.erase(u);
-				EQ.erase({u,false});
-			}
-		}
-		
-	}
-	else{
-		if(!doubleend){
-			if(!(f==a1dnext.f1) && !(f==a1dnext.f2)){
-				point u(create_circle_event(f,a1dnext.f1,a1dnext.f2));
-				m.erase(u);
-				EQ.erase({u,false});
-			}
-		}
-		
-		if(!begin){
-			if(!(f==a1prev.f1) && !(f==a1prev.f2)){
-				point u(create_circle_event(f,a1prev.f1,a1prev.f2));
-				m.erase(u);
-				EQ.erase({u,false});
-			}
-		}
+	cout<<"Previous and next breakpoints for final adding of circle events:\n";
+	// printbp(prev);
+	// printbp(next);
+	if(!begin){
+		printbp(prev);
+		printbp(a3);
+		check_and_add(prev,a3);
+
 	}
 	if(!end){
-		if(front){
-			check_and_add(a3,a1next);
-			if(!doublebegin){
-				check_and_add(a1dprev,a3);
-			}
-		}
-		else{
-			if(!doubleend){
-				check_and_add(a3,a1dnext);
-			}
-			if(!begin){
-				check_and_add(a1prev,a3);
-			}
-		}
-	}
-	else{
-		if(!doublebegin){
-			check_and_add(a1dprev,a3);
-		}
+		printbp(a3);
+		printbp(next);
+		check_and_add(next,a3);
 	}
 	return;
 }
@@ -628,6 +550,7 @@ int main(){
 	if(EQ.size()<=1){
 		return 0;
 	}
+	//printEQ();
 	point p1 = (*(EQ.begin())).first;
 	EQ.erase(EQ.begin());
 	point p2 = (*(EQ.begin())).first;
@@ -656,7 +579,7 @@ int main(){
 		point E;
 		E = (*(EQ.begin())).first;
 		yl = E.y;
-		cout<<"-------\n";
+		cout<<"-------"<<endl;
 		if((*(EQ.begin())).second){
 			cout<<"Handling Site Event: ";
 			E.print();

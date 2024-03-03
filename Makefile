@@ -7,7 +7,7 @@ vornoi1: vornoi1.cpp
 	$(CXX) $(CXXFLAGS) -o voronoi voronoi.cpp
 
 generate_output: voronoi input.txt
-	./voronoi < input.txt > output.txt
+	./voronoi < input.txt > log.txt
 
 plot: output.txt
 	python3 plot.py input.txt output.txt
